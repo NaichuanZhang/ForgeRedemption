@@ -9,14 +9,16 @@ interface GameLandingPageProps {
   sponsors?: string[];
 }
 
-export function GameLandingPage({ 
-  onEnter, 
-  logoSrc = DEFAULT_LOGO, 
-  videoSrc = DEFAULT_VIDEO, 
-  sponsors = DEFAULT_SPONSORS 
-}: GameLandingPageProps) {
-  const sponsorXPositions = [12.5, 37.5, 69, 87.5];
+const sponsorXPositions = [15.5, 33, 69, 85];
+const sponsorYPositions = [2, 7, 5, 6.5]; // vh from bottom
+const sponsorSizes = [152, 80, 107, 96]; // px
 
+export function GameLandingPage({
+  onEnter,
+  logoSrc = DEFAULT_LOGO,
+  videoSrc = DEFAULT_VIDEO,
+  sponsors = DEFAULT_SPONSORS,
+}: GameLandingPageProps) {
   return (
     <div className="relative h-screen w-screen bg-[#050505] overflow-hidden text-white font-sans">
       {/* Background Layer */}
@@ -95,8 +97,12 @@ export function GameLandingPage({
               key={index}
               src={src}
               alt={`Sponsor ${index + 1}`}
-              style={{ left: `${sponsorXPositions[index] ?? 0}vw` }}
-              className="absolute bottom-10 md:bottom-14 -translate-x-1/2 h-12 md:h-16 lg:h-20 w-auto max-w-[min(20vw,240px)] object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] opacity-60 hover:opacity-100 transition-opacity duration-500"
+              style={{
+                left: `${sponsorXPositions[index] ?? 0}vw`,
+                bottom: `${sponsorYPositions[index] ?? 0}vh`,
+                height: `${sponsorSizes[index] ?? 80}px`,
+              }}
+              className="absolute -translate-x-1/2 w-auto max-w-[min(20vw,240px)] object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] opacity-60 hover:opacity-100 transition-opacity duration-500 pointer-events-auto"
               referrerPolicy="no-referrer"
             />
           ))}
