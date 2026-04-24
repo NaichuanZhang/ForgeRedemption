@@ -33,4 +33,6 @@ dist
 *.png
 !public/**/*.png
 !docs/**/*.png
+!assets/ui/*.png
+!src/components/LandingPage/sponsors/*.png
 .vercel
