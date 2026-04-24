@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-zinc-900 text-zinc-100 antialiased;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .pixel {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+}
+
+@keyframes rain-fall {
+  from { transform: translateY(-10vh); opacity: 0.9; }
+  to { transform: translateY(110vh); opacity: 0.4; }
+}
+
+@keyframes fog-drift {
+  0% { transform: translateX(-5%); opacity: 0.3; }
+  50% { opacity: 0.45; }
+  100% { transform: translateX(5%); opacity: 0.3; }
+}
+
+@keyframes sun-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes thunder-flash {
+  0%, 92%, 100% { opacity: 0; }
+  94%, 96% { opacity: 0.25; }
+}
