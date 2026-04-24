@@ -10,8 +10,8 @@ const TIME_ORDER = ['morning', 'noon', 'evening', 'night'] as const
 
 function rollWeather(): 'rain' | 'sun' | 'fog' {
   const r = Math.random()
-  if (r < 0.4) return 'rain'
-  if (r < 0.75) return 'sun'
+  if (r < 0.65) return 'rain'
+  if (r < 0.85) return 'sun'
   return 'fog'
 }
 
@@ -61,13 +61,17 @@ export default async function (req: Request): Promise<Response> {
     })
   }
 
-  let curfewNarration: string | null = null
+  const curfewNarrations: string[] = []
   if (time_of_day === 'night') {
-    const { data: inmate } = await client.database
-      .from('agents').select('location').eq('id', 'inmate').single()
-    if (inmate && inmate.location !== 'cell' && inmate.location !== 'tunnel') {
-      await client.database.from('agents').update({ location: 'cell' }).eq('id', 'inmate')
-      curfewNarration = `Night lockdown: inmate escorted back to cell from the ${inmate.location}.`
+    const { data: inmates } = await client.database
+      .from('agents').select('id, location').in('id', ['inmate', 'inmate2'])
+    for (const inmate of (inmates ?? [])) {
+      const homeCell = inmate.id === 'inmate2' ? 'cell2' : 'cell'
+      if (inmate.location !== homeCell && inmate.location !== 'tunnel') {
+        await client.database.from('agents').update({ location: homeCell }).eq('id', inmate.id)
+        const label = inmate.id === 'inmate' ? 'Inmate' : 'Inmate #2'
+        curfewNarrations.push(`Night lockdown: ${label} escorted back to ${homeCell} from the ${inmate.location}.`)
+      }
     }
   }
 
@@ -80,14 +84,14 @@ export default async function (req: Request): Promise<Response> {
     narration: `Tick ${tick} — ${time_of_day}, ${weather}.`,
   }])
 
-  if (curfewNarration) {
+  for (const narration of curfewNarrations) {
     await client.database.from('action_log').insert([{
       agent_id: 'world',
       tick,
       action: 'curfew',
       args: { time_of_day },
       result: 'success',
-      narration: curfewNarration,
+      narration,
     }])
   }
 

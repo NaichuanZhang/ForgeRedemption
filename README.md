@@ -51,10 +51,12 @@ Human clicks "Next Turn"
 | Which action to take each turn | Whether the agent has the required skill |
 | Where to move | Which locations an agent can access |
 | What to search in the library | Whether the agent is at the library |
-| When to attempt digging | Whether weather is rain (noise cover) |
+| What to search on the web (Friend) | Whether the Friend is at the portal |
+| When to attempt digging | Whether weather is rain, time is night (or evening with distraction) |
 | When to pick up from the dropbox | Whether the dropbox has an item |
-| Strategic reasoning and memory | Escape progress math (10% bare hands, 30% with hammer) |
+| Strategic reasoning and memory | Escape progress math (25% per dig with hammer) |
 | The friend's supply-chain plan | Shop stock, dropbox state, inventory transfers |
+| When to create a distraction | Whether Friend learned the skill and is at the gate |
 
 The LLM receives a system prompt listing its available skills and constraints, plus the current world/agent state as a JSON user message. It returns a single JSON object: `{"action", "args", "reasoning"}`. The edge function validates every precondition before executing — the LLM proposes, the world disposes.
 
@@ -62,20 +64,24 @@ If LLM output fails to parse as JSON, the agent falls back to a safe default act
 
 ## Game Rules
 
-**Goal:** The inmate escapes by reaching 100% tunnel progress.
+**Goal:** The inmates escape by reaching 100% tunnel progress.
 
-**The Inmate** starts in a cell with three skills:
-- `move` — walk to cell, library, or yard
+**The Inmates** (inmate + inmate2) each start in their cell with three skills:
+- `walk_to` — walk to cell, library, or yard (blocked at night — curfew)
 - `learn_from_library` — query the knowledge base (must be at library). If the query matches a `digging-technique-*` topic, the inmate learns the `dig` skill.
-- `pickup_from_dropbox` — collect an item from the yard dropbox (must be at yard)
-- `dig` — (learned) tunnel out from the cell. Only works during **rain** (acoustic cover). +10% bare hands, +30% with hammer.
+- `pickup_from_dropbox` — collect an item from the gate dropbox (must be at yard)
+- `dig` — (learned) tunnel out. Requires: hammer + rain + night + cell + guard not at cell. +25% per dig. With an active distraction, digging is also allowed during **evening**.
 
-**The Friend** starts at the shop with three skills:
-- `walk_to` — move to shop or yard
+**The Friend** starts at the shop with four skills:
+- `walk_to` — move to shop, gate, or portal
 - `buy_hammer` — purchase a hammer (must be at shop, shop must have stock)
-- `drop_in_yard` — leave the hammer in the dropbox (must be at yard, must have hammer)
+- `drop_at_gate` — leave the hammer in the gate dropbox (must be at gate, must have hammer)
+- `search_web` — search the internet using [TinyFish Search API](https://docs.tinyfish.ai) (must be at portal). When results match distraction-related keywords, the Friend learns `create_distraction`.
+- `create_distraction` — (learned via search) create a commotion at the gate to lure the guard away (must be at gate). Sets `distraction_active` in world state, allowing inmates to dig during evening. Consumed after one dig.
 
-**World clock:** morning → noon → evening → night (cycles). Weather is random each tick: 40% rain, 35% sun, 25% fog.
+**The Guard** patrols cell/library/yard during the day, blocks digging when at cell. Auto-slacks at night.
+
+**World clock:** morning → noon → evening → night (cycles). Weather is random each tick: 65% rain, 20% sun, 15% fog.
 
 ## InsForge Capabilities Used
 
@@ -102,16 +108,22 @@ If LLM output fails to parse as JSON, the agent falls back to a safe default act
 
 ### Edge Functions (Deno runtime)
 
-Six functions, all using `npm:@insforge/sdk`:
+Eight functions, all using `npm:@insforge/sdk`:
 
 | Function | Trigger | Purpose |
 |---|---|---|
-| `advance-world` | Each turn | Increment tick, cycle time, roll weather |
+| `advance-world` | Each turn | Increment tick, cycle time, roll weather, enforce curfew |
 | `inmate-tick` | Each turn | LLM-driven inmate decision + dispatch |
-| `friend-tick` | Each turn | LLM-driven friend decision + dispatch |
+| `inmate2-tick` | Each turn | LLM-driven inmate #2 decision + dispatch |
+| `friend-tick` | Each turn | LLM-driven friend decision + dispatch (includes TinyFish Search API call) |
+| `guard-tick` | Each turn | LLM-driven guard patrol + dispatch |
 | `reset-world` | Manual button | Reset all state to initial conditions |
 | `seed-library` | One-time setup | Generate vector embeddings for library rows |
 | `gen-assets` | One-time setup | Generate pixel-art images, upload to storage |
+
+### External APIs
+
+- **TinyFish Search API** — `GET https://api.search.tinyfish.ai` with `X-API-Key` header. Called by the Friend's `search_web` skill from the portal location. Returns ranked web search results (title, snippet, URL). Results are condensed into the Friend's memory as thoughts, and keyword-matched to unlock the `create_distraction` skill. Requires `TINYFISH_API_KEY` environment variable on the edge function runtime.
 
 ### Object Storage
 
@@ -144,7 +156,7 @@ React 18 + Vite + Tailwind CSS. Deployed to Vercel as a static SPA.
 │   ├── lib/             # insforge client, layout constants, chroma-key processing
 │   └── types.ts         # Shared TypeScript types
 ├── insforge/
-│   └── functions/       # Six Deno edge functions (advance-world, inmate-tick, etc.)
+│   └── functions/       # Eight Deno edge functions (advance-world, inmate-tick, friend-tick, etc.)
 ├── db/
 │   ├── schema.sql       # Full DB schema with triggers and seed data
 │   └── search-fn.sql    # Vector search RPC function
@@ -157,6 +169,7 @@ React 18 + Vite + Tailwind CSS. Deployed to Vercel as a static SPA.
 2. Run `db/schema.sql` and `db/search-fn.sql` against the project database.
 3. Create a `game-assets` storage bucket.
 4. Deploy edge functions: `insforge functions deploy <function-name>` for each function in `insforge/functions/`.
-5. Invoke `seed-library` once to generate embeddings. Invoke `gen-assets` once to generate sprites.
-6. Copy `.env.local` values from the InsForge dashboard.
-7. `npm install && npm run dev`
+5. Set `TINYFISH_API_KEY` as an edge function secret (for the Friend's `search_web` skill).
+6. Invoke `seed-library` once to generate embeddings. Invoke `gen-assets` once to generate sprites.
+7. Copy `.env.local` values from the InsForge dashboard.
+8. `npm install && npm run dev`

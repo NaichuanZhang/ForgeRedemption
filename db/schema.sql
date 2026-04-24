@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS game_state (
   tick        INT NOT NULL DEFAULT 0,
   time_of_day TEXT NOT NULL DEFAULT 'morning',
   weather     TEXT NOT NULL DEFAULT 'sun',
-  world       JSONB NOT NULL DEFAULT '{"dropbox":{"item":null},"shop":{"stock":["hammer"]},"escape_progress":0}'::jsonb,
+  world       JSONB NOT NULL DEFAULT '{"dropbox":{"item":null},"shop":{"stock":["hammer","hammer"]},"escape_progress":0,"distraction_active":false}'::jsonb,
   status      TEXT NOT NULL DEFAULT 'playing',
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -154,12 +154,13 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Seed agents
 INSERT INTO agents (id, role, location, skills) VALUES
-  ('inmate', 'inmate', 'cell', ARRAY['learn_from_library','walk_to','pickup_from_dropbox']),
-  ('friend', 'friend', 'cell', ARRAY['walk_to','buy_hammer','drop_in_yard'])
+  ('inmate',  'inmate', 'cell', ARRAY['learn_from_library','walk_to','pickup_from_dropbox']),
+  ('inmate2', 'inmate', 'cell2', ARRAY['learn_from_library','walk_to','pickup_from_dropbox']),
+  ('friend',  'friend', 'shop', ARRAY['walk_to','buy_hammer','drop_at_gate','search_web']),
+  ('guard',   'guard',  'yard', ARRAY['patrol','slack_off'])
 ON CONFLICT (id) DO NOTHING;
 
--- Override friend initial location to a non-cell start so they're visibly separate
-UPDATE agents SET location = 'shop' WHERE id = 'friend' AND location = 'cell';
+-- Friend starts at shop (set directly in INSERT above)
 
 -- Seed library (embeddings NULL — filled by seed-library function)
 INSERT INTO library (topic, content) VALUES

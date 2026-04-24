@@ -1,21 +1,33 @@
 import clsx from 'clsx'
 import type { Agent } from '../types'
 
+type Accent = 'orange' | 'sky' | 'green' | 'red'
+
 interface Props {
   agent: Agent
   label: string
-  accent: 'orange' | 'sky'
+  accent: Accent
+}
+
+const ACCENT_BORDER: Record<Accent, string> = {
+  orange: 'border-orange-600/60 bg-orange-950/30',
+  sky:    'border-sky-600/60 bg-sky-950/30',
+  green:  'border-green-600/60 bg-green-950/30',
+  red:    'border-red-600/60 bg-red-950/30',
+}
+
+const ACCENT_CHIP: Record<Accent, string> = {
+  orange: 'bg-orange-900/50 text-orange-200',
+  sky:    'bg-sky-900/50 text-sky-200',
+  green:  'bg-green-900/50 text-green-200',
+  red:    'bg-red-900/50 text-red-200',
 }
 
 export function AgentHud({ agent, label, accent }: Props) {
   const lastThought = agent.memory?.thoughts?.[agent.memory.thoughts.length - 1]
   const inventory = agent.inventory?.items ?? []
-  const accentClasses = accent === 'orange'
-    ? 'border-orange-600/60 bg-orange-950/30'
-    : 'border-sky-600/60 bg-sky-950/30'
-  const chipClasses = accent === 'orange'
-    ? 'bg-orange-900/50 text-orange-200'
-    : 'bg-sky-900/50 text-sky-200'
+  const accentClasses = ACCENT_BORDER[accent]
+  const chipClasses = ACCENT_CHIP[accent]
 
   return (
     <div className={clsx('rounded-xl border px-4 py-3 backdrop-blur-sm', accentClasses)}>

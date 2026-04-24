@@ -15,18 +15,23 @@ interface AssetSpec {
 const ASSETS: AssetSpec[] = [
   {
     key: 'scene-backdrop',
-    size: '1536x512',
-    prompt: 'side-scrolling pixel-art prison scene spanning four zones left to right: a barred stone prison cell on the far left, an arched library doorway with wooden bookshelves visible, a muddy open prison yard with a wooden crate dropbox center and high chain-link fence, and a small hammer-shop storefront with a wooden HAMMERS signboard on the far right. retro 16-bit aesthetic, muted dusk palette with purple and amber tones, flat parallax, dramatic lighting, no characters, no text other than the HAMMERS sign.',
+    size: '1536x960',
+    prompt: 'top-down pixel-art world map titled FORGEREDEMPTION WORLD MAP, retro 16-bit aesthetic with chunky pixels. The map is split left-right. LEFT SIDE (roughly 40 percent of width) OUTSIDE AREA: green checkered grass ground, scattered pixel-art trees with dark green canopies on brown trunks, small grass tufts, tiny rocks. A winding brown dirt path runs vertically through the center of the outside area from top to bottom. Upper-left: a HAMMER SHOP building with gray stone walls, a wooden sign reading SHOP, small windows, wooden door, peaked slate roof. Lower-left: a glowing blue swirling portal arch crackling with digital energy particles, labeled PORTAL, sitting on the green grass near scattered pixel-art trees. The outside area feels open and pastoral. RIGHT SIDE (roughly 60 percent of width) PRISON COMPOUND: thick gray stone perimeter wall with square corner watchtowers with crenellated tops. Inside the walls the floor is purple lavender checkered tiles. Upper-right inside the compound: CELL 1 and CELL 2 side by side, small rooms with barred doors, each containing a simple bed. Center-right: open PRISON YARD area, the largest open space inside walls. Lower-right inside the compound: a LIBRARY room with bookshelves lining the walls and a reading desk. A main gate opening sits at the left edge of the prison wall, connecting to the outside dirt path. Amber lantern glows on the prison walls. Bottom strip: a narrow legend bar showing colored squares labeled Outside area green, Dirt path brown, Building tan, Prison floor purple, Wall Tower gray, Guard NPC blue. Muted dusk palette, warm amber lantern glows, no characters, leave interiors uncluttered so overlayed sprites read clearly.',
   },
   {
     key: 'sprite-inmate',
     size: '512x512',
-    prompt: 'pixel-art character sprite of an adult man in an orange prison jumpsuit, short dark hair, serious expression, standing facing slightly right, full body visible, retro 16-bit video game aesthetic, chunky pixels, centered on a plain white background.',
+    prompt: 'top-down pixel-art character sprite of an adult man in a bright yellow prison uniform with a matching cap, viewed from above at a slight 3/4 angle so the head and shoulders are visible with arms at sides, retro 16-bit video game aesthetic, chunky pixels, centered on a plain white background.',
   },
   {
     key: 'sprite-friend',
     size: '512x512',
-    prompt: 'pixel-art character sprite of a casual young man in a grey hoodie, blue jeans, brown boots, carrying a tan leather satchel over one shoulder, standing facing slightly right, full body visible, retro 16-bit video game aesthetic, chunky pixels, centered on a plain white background.',
+    prompt: 'top-down pixel-art character sprite of exactly one single stocky broad-shouldered casual young man in a green hoodie and dark jeans, carrying a small satchel, viewed from above at a slight 3/4 angle so the head and shoulders are visible, wide chunky body proportions, retro 16-bit video game aesthetic, chunky pixels, one character only, no other figures, centered on a plain white background.',
+  },
+  {
+    key: 'sprite-guard',
+    size: '512x512',
+    prompt: 'top-down pixel-art character sprite of a stern prison guard in a dark navy uniform and peaked cap with a black baton at the hip, viewed from above at a slight 3/4 angle so the head and shoulders are visible, retro 16-bit video game aesthetic, chunky pixels, centered on a plain white background.',
   },
   {
     key: 'icon-hammer',

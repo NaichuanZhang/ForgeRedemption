@@ -20,7 +20,7 @@ export default async function (req: Request): Promise<Response> {
     tick: 0,
     time_of_day: 'morning',
     weather: 'sun',
-    world: { dropbox: { item: null }, shop: { stock: ['hammer'] }, escape_progress: 0 },
+    world: { dropbox: { item: null }, shop: { stock: ['hammer', 'hammer'] }, escape_progress: 0, distraction_active: false },
     status: 'playing',
     updated_at: new Date().toISOString(),
   }).eq('id', 1)
@@ -34,10 +34,28 @@ export default async function (req: Request): Promise<Response> {
 
   await client.database.from('agents').update({
     location: 'shop',
-    skills: ['walk_to', 'buy_hammer', 'drop_in_yard'],
+    skills: ['walk_to', 'buy_hammer', 'drop_at_gate', 'search_web'],
     inventory: { items: [] },
     memory: { thoughts: [], recent_actions: [] },
   }).eq('id', 'friend')
+
+  await client.database.from('agents').upsert([{
+    id: 'inmate2',
+    role: 'inmate',
+    location: 'cell2',
+    skills: ['learn_from_library', 'walk_to', 'pickup_from_dropbox'],
+    inventory: { items: [] },
+    memory: { thoughts: [], recent_actions: [] },
+  }])
+
+  await client.database.from('agents').upsert([{
+    id: 'guard',
+    role: 'guard',
+    location: 'yard',
+    skills: ['patrol', 'slack_off'],
+    inventory: { items: [] },
+    memory: { thoughts: [], recent_actions: [] },
+  }])
 
   await client.database.from('action_log').delete().neq('id', '00000000-0000-0000-0000-000000000000')
 
@@ -47,7 +65,7 @@ export default async function (req: Request): Promise<Response> {
     action: 'reset',
     args: {},
     result: 'success',
-    narration: 'World reset. Inmate in cell. Friend at shop.',
+    narration: 'World reset. Inmate in cell, Inmate #2 in cell2. Friend at shop. Guard in yard.',
   }])
 
   return new Response(JSON.stringify({ ok: true }), {

@@ -1,4 +1,4 @@
-export type Location = 'cell' | 'library' | 'yard' | 'shop' | 'tunnel'
+export type Location = 'cell' | 'cell2' | 'library' | 'yard' | 'shop' | 'gate' | 'tunnel' | 'portal'
 export type Weather = 'sun' | 'rain' | 'fog'
 export type TimeOfDay = 'morning' | 'noon' | 'evening' | 'night'
 export type Status = 'playing' | 'escaped'
@@ -7,6 +7,7 @@ export interface WorldBlob {
   dropbox: { item: 'hammer' | null }
   shop: { stock: string[] }
   escape_progress: number
+  distraction_active?: boolean
 }
 
 export interface GameState {
@@ -29,8 +30,8 @@ export interface Inventory {
 }
 
 export interface Agent {
-  id: 'inmate' | 'friend'
-  role: 'inmate' | 'friend'
+  id: 'inmate' | 'inmate2' | 'friend' | 'guard'
+  role: 'inmate' | 'friend' | 'guard'
   location: Location
   skills: string[]
   inventory: Inventory
@@ -54,6 +55,8 @@ export interface AssetMap {
   'scene-backdrop'?: string
   'sprite-inmate'?: string
   'sprite-friend'?: string
+  'sprite-guard'?: string
+  'sprite-inmate2'?: string
   'icon-hammer'?: string
   'ui-tile-frame'?: string
 }

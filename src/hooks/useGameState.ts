@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type Dispatch, type SetStateAction, useCallback, useEffect, useRef, useState } from 'react'
 import { insforge } from '../lib/insforge'
 import type { ActionLogEntry, Agent, AssetMap, GameState } from '../types'
 
@@ -7,12 +7,15 @@ const LOG_LIMIT = 40
 interface State {
   state: GameState | null
   inmate: Agent | null
+  inmate2: Agent | null
   friend: Agent | null
+  guard: Agent | null
   log: ActionLogEntry[]
   assets: AssetMap
   loading: boolean
   error: string | null
   turnInFlight: boolean
+  autoPlay: boolean
 }
 
 type Fn = ReturnType<typeof createFn>
@@ -21,20 +24,25 @@ function createFn() {
   return {
     advanceTurn: async () => {},
     resetWorld: async () => {},
+    setAutoPlay: (() => {}) as Dispatch<SetStateAction<boolean>>,
   }
 }
 
 export function useGameState(): State & Fn {
   const [state, setState] = useState<GameState | null>(null)
   const [inmate, setInmate] = useState<Agent | null>(null)
+  const [inmate2, setInmate2] = useState<Agent | null>(null)
   const [friend, setFriend] = useState<Agent | null>(null)
+  const [guard, setGuard] = useState<Agent | null>(null)
   const [log, setLog] = useState<ActionLogEntry[]>([])
   const [assets, setAssets] = useState<AssetMap>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [turnInFlight, setTurnInFlight] = useState(false)
+  const [autoPlay, setAutoPlay] = useState(false)
   const subscribedRef = useRef(false)
   const busyRef = useRef(false)
+  const autoPlayRef = useRef(false)
 
   const loadInitial = useCallback(async () => {
     try {
@@ -52,7 +60,9 @@ export function useGameState(): State & Fn {
       setState(s.data as GameState)
       const agents = (a.data ?? []) as Agent[]
       setInmate(agents.find(x => x.id === 'inmate') ?? null)
+      setInmate2(agents.find(x => x.id === 'inmate2') ?? null)
       setFriend(agents.find(x => x.id === 'friend') ?? null)
+      setGuard(agents.find(x => x.id === 'guard') ?? null)
       setLog(((l.data ?? []) as ActionLogEntry[]).slice().reverse())
 
       const map: AssetMap = {}
@@ -88,7 +98,9 @@ export function useGameState(): State & Fn {
         })
         insforge.realtime.on('agent_changed', (payload: any) => {
           if (payload?.id === 'inmate') setInmate(prev => ({ ...(prev ?? {} as any), ...payload } as Agent))
+          else if (payload?.id === 'inmate2') setInmate2(prev => ({ ...(prev ?? {} as any), ...payload } as Agent))
           else if (payload?.id === 'friend') setFriend(prev => ({ ...(prev ?? {} as any), ...payload } as Agent))
+          else if (payload?.id === 'guard') setGuard(prev => ({ ...(prev ?? {} as any), ...payload } as Agent))
         })
         insforge.realtime.on('action', (payload: any) => {
           setLog(prev => {
@@ -115,7 +127,9 @@ export function useGameState(): State & Fn {
     if (a.data) {
       const agents = a.data as Agent[]
       setInmate(agents.find(x => x.id === 'inmate') ?? null)
+      setInmate2(agents.find(x => x.id === 'inmate2') ?? null)
       setFriend(agents.find(x => x.id === 'friend') ?? null)
+      setGuard(agents.find(x => x.id === 'guard') ?? null)
     }
     if (l.data) setLog(((l.data) as ActionLogEntry[]).slice().reverse())
   }, [])
@@ -129,7 +143,11 @@ export function useGameState(): State & Fn {
       await refreshFromDb()
       await insforge.functions.invoke('inmate-tick', { body: {} })
       await refreshFromDb()
+      await insforge.functions.invoke('inmate2-tick', { body: {} })
+      await refreshFromDb()
       await insforge.functions.invoke('friend-tick', { body: {} })
+      await refreshFromDb()
+      await insforge.functions.invoke('guard-tick', { body: {} })
       await refreshFromDb()
     } catch (e) {
       setError((e as Error).message)
@@ -139,8 +157,25 @@ export function useGameState(): State & Fn {
     }
   }, [refreshFromDb])
 
+  useEffect(() => {
+    autoPlayRef.current = autoPlay
+  }, [autoPlay])
+
+  useEffect(() => {
+    if (turnInFlight || !autoPlay) return
+    if (state?.status === 'escaped') {
+      setAutoPlay(false)
+      return
+    }
+    const timer = setTimeout(() => {
+      if (autoPlayRef.current) advanceTurn()
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [turnInFlight, autoPlay, state?.status, advanceTurn])
+
   const resetWorld = useCallback(async () => {
     if (busyRef.current) return
+    setAutoPlay(false)
     busyRef.current = true
     setTurnInFlight(true)
     try {
@@ -154,5 +189,5 @@ export function useGameState(): State & Fn {
     }
   }, [loadInitial])
 
-  return { state, inmate, friend, log, assets, loading, error, turnInFlight, advanceTurn, resetWorld } as State & Fn
+  return { state, inmate, inmate2, friend, guard, log, assets, loading, error, turnInFlight, autoPlay, setAutoPlay, advanceTurn, resetWorld } as State & Fn
 }
