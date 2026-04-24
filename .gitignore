@@ -32,4 +32,6 @@ dist
 .playwright-mcp/
 *.png
 !public/**/*.png
+!assets/ui/*.png
+!src/components/LandingPage/sponsors/*.png
 .vercel
