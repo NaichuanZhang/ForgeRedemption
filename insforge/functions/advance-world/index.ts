@@ -61,6 +61,16 @@ export default async function (req: Request): Promise<Response> {
     })
   }
 
+  let curfewNarration: string | null = null
+  if (time_of_day === 'night') {
+    const { data: inmate } = await client.database
+      .from('agents').select('location').eq('id', 'inmate').single()
+    if (inmate && inmate.location !== 'cell' && inmate.location !== 'tunnel') {
+      await client.database.from('agents').update({ location: 'cell' }).eq('id', 'inmate')
+      curfewNarration = `Night lockdown: inmate escorted back to cell from the ${inmate.location}.`
+    }
+  }
+
   await client.database.from('action_log').insert([{
     agent_id: 'world',
     tick,
@@ -69,6 +79,17 @@ export default async function (req: Request): Promise<Response> {
     result: 'success',
     narration: `Tick ${tick} — ${time_of_day}, ${weather}.`,
   }])
+
+  if (curfewNarration) {
+    await client.database.from('action_log').insert([{
+      agent_id: 'world',
+      tick,
+      action: 'curfew',
+      args: { time_of_day },
+      result: 'success',
+      narration: curfewNarration,
+    }])
+  }
 
   return new Response(JSON.stringify({ ok: true, state: updated }), {
     status: 200,

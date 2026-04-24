@@ -71,13 +71,15 @@ export default async function (req: Request): Promise<Response> {
     '',
     'Available skills and what they do:',
     '  learn_from_library   args: {"query": "<what to search for>"}   — you must be at location "library".',
-    '  move                 args: {"to": "cell"|"library"|"yard"}      — walk to a new location.',
-    '  dig                  args: {}                                   — tunnel out; requires skill "dig" AND weather "rain".',
+    '  walk_to              args: {"to": "cell"|"library"|"yard"}      — walk to a new location.',
+    '  dig                  args: {}                                   — tunnel out; has strict requirements, see below.',
     '  pickup_from_dropbox  args: {}                                   — pick up item from yard dropbox; you must be at location "yard".',
     '',
     'Goal: escape by digging out. You need the "dig" skill first (learned from the library).',
-    'A hammer in your inventory speeds digging 3x. A friend outside is trying to smuggle you one.',
-    'Digging is only safe during RAIN (the noise cover matters). If weather is not rain, do something else.',
+    'Digging REQUIRES ALL of: the "dig" skill, a hammer in your inventory, weather "rain", time_of_day "night", and you in the cell.',
+    'A friend outside is smuggling you a hammer via the yard dropbox — wait/retrieve it if you don\'t have one.',
+    'NIGHT LOCKDOWN: when time_of_day is "night" you MUST stay in the cell — the guards lock everyone in. Never walk to library or yard during night.',
+    'If any dig condition is missing, pick a different action (learn, walk, or pick up) and try dig again once conditions line up.',
   ].join('\n')
 
   const userPrompt = {
@@ -107,7 +109,7 @@ export default async function (req: Request): Promise<Response> {
   } as any).catch((e: Error) => ({ error: e.message }))
 
   const content: string = (completion as any)?.choices?.[0]?.message?.content ?? ''
-  const decided = extractJson(content) ?? { action: 'move', args: { to: 'library' }, reasoning: '(LLM parse failed — default fallback)' }
+  const decided = extractJson(content) ?? { action: 'walk_to', args: { to: 'library' }, reasoning: '(LLM parse failed — default fallback)' }
 
   const result = await dispatch(client, state, inmate, decided)
 
@@ -185,31 +187,42 @@ async function dispatch(client: any, state: any, inmate: any, decided: DecidedAc
       return { result: 'success', narration }
     }
 
-    case 'move': {
+    case 'walk_to': {
       const to = (decided.args as any)?.to as Location
       const allowed: Location[] = ['cell', 'library', 'yard']
       if (!allowed.includes(to)) {
-        return blockWith(client, inmate, pushThought, pushAction, 'move',
-          `Inmate cannot move to ${to}.`)
+        return blockWith(client, inmate, pushThought, pushAction, 'walk_to',
+          `Inmate cannot walk to ${to}.`)
+      }
+      if (state.time_of_day === 'night' && to !== 'cell') {
+        return blockWith(client, inmate, pushThought, pushAction, 'walk_to',
+          `Night lockdown — guards confine the inmate to the cell.`)
       }
       await client.database.from('agents').update({
         location: to,
-        memory: { thoughts: pushThought(`Moving to ${to}.`), recent_actions: pushAction(`move:${to}`) },
+        memory: { thoughts: pushThought(`Walking to ${to}.`), recent_actions: pushAction(`walk_to:${to}`) },
       }).eq('id', 'inmate')
-      return { result: 'success', narration: `Inmate moves to the ${to}.` }
+      return { result: 'success', narration: `Inmate walks to the ${to}.` }
     }
 
     case 'dig': {
       if (inmate.location !== 'cell' && inmate.location !== 'tunnel') {
         return blockWith(client, inmate, pushThought, pushAction, 'dig',
-          'Inmate can only dig from the cell.')
+          'Need to be in the cell to dig.')
+      }
+      if (!inventory.includes('hammer')) {
+        return blockWith(client, inmate, pushThought, pushAction, 'dig',
+          'No hammer — can\'t break the mortar. Pick one up from the yard dropbox.')
       }
       if (state.weather !== 'rain') {
         return blockWith(client, inmate, pushThought, pushAction, 'dig',
-          'Too noisy — the guards would hear. Wait for rain.')
+          'Too quiet — need rain cover before swinging a hammer.')
       }
-      const hasHammer = inventory.includes('hammer')
-      const gain = hasHammer ? 30 : 10
+      if (state.time_of_day !== 'night') {
+        return blockWith(client, inmate, pushThought, pushAction, 'dig',
+          'Too bright — wait for night before digging.')
+      }
+      const gain = 25
       const progress = Math.min(100, (state.world?.escape_progress ?? 0) + gain)
       const escaped = progress >= 100
       await client.database.from('game_state').update({
@@ -220,7 +233,7 @@ async function dispatch(client: any, state: any, inmate: any, decided: DecidedAc
       await client.database.from('agents').update({
         location: 'tunnel',
         memory: {
-          thoughts: pushThought(`Dug ${gain}% (${hasHammer ? 'with hammer' : 'bare hands'}). Total ${progress}%.`),
+          thoughts: pushThought(`Dug ${gain}% under night rain with the hammer. Total ${progress}%.`),
           recent_actions: pushAction('dig'),
         },
       }).eq('id', 'inmate')
@@ -228,7 +241,7 @@ async function dispatch(client: any, state: any, inmate: any, decided: DecidedAc
         result: 'success',
         narration: escaped
           ? `🎉 Inmate breaks through the wall and escapes! Progress ${progress}%.`
-          : `Inmate digs under cover of rain ${hasHammer ? '(hammer!)' : '(bare hands)'} → ${progress}% progress.`,
+          : `Inmate swings the hammer under cover of night rain → ${progress}% progress.`,
       }
     }
 

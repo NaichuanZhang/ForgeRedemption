@@ -27,7 +27,7 @@ export default async function (req: Request): Promise<Response> {
 
   await client.database.from('agents').update({
     location: 'cell',
-    skills: ['learn_from_library', 'move', 'pickup_from_dropbox'],
+    skills: ['learn_from_library', 'walk_to', 'pickup_from_dropbox'],
     inventory: { items: [] },
     memory: { thoughts: [], recent_actions: [] },
   }).eq('id', 'inmate')

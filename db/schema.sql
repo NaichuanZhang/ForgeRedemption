@@ -154,7 +154,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Seed agents
 INSERT INTO agents (id, role, location, skills) VALUES
-  ('inmate', 'inmate', 'cell', ARRAY['learn_from_library','move','pickup_from_dropbox']),
+  ('inmate', 'inmate', 'cell', ARRAY['learn_from_library','walk_to','pickup_from_dropbox']),
   ('friend', 'friend', 'cell', ARRAY['walk_to','buy_hammer','drop_in_yard'])
 ON CONFLICT (id) DO NOTHING;
 
