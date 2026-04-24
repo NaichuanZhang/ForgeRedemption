@@ -201,7 +201,7 @@ async function dispatch(client: any, state: any, friend: any, decided: DecidedAc
       url.searchParams.set('query', query)
       url.searchParams.set('language', 'en')
 
-      let searchResults: Array<{ title: string; snippet: string }> = []
+      let searchResults: Array<{ title: string; snippet: string; site_name: string; position: number; resultUrl: string }> = []
       try {
         const resp = await fetch(url.toString(), {
           headers: { 'X-API-Key': apiKey },
@@ -216,9 +216,36 @@ async function dispatch(client: any, state: any, friend: any, decided: DecidedAc
         searchResults = (json.results ?? []).slice(0, 3).map((r: any) => ({
           title: r.title ?? '',
           snippet: r.snippet ?? '',
+          site_name: r.site_name ?? '',
+          position: r.position ?? 0,
+          resultUrl: r.url ?? '',
         }))
       } catch (e) {
         return blockWith(client, friend, pushThought, pushAction, 'search_web', `Portal error: ${(e as Error).message}`)
+      }
+
+      const nexlaUrl = Deno.env.get('NEXLA_WEBHOOK_URL')
+      if (nexlaUrl) {
+        const sanitize = (s: string) => (s ?? '')
+          .replace(/[•·]/g, '-').replace(/[—–]/g, '-').replace(/[…]/g, '...')
+          .replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
+          .replace(/[^\x00-\x7F]/g, '').replace(/\s+/g, ' ').trim()
+        await Promise.all(searchResults
+          .filter(r => r.snippet && r.snippet.trim().length >= 30 && r.title && r.resultUrl)
+          .map(r => fetch(nexlaUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              source: 'tinyfish',
+              query,
+              position: r.position,
+              site_name: sanitize(r.site_name),
+              title: sanitize(r.title),
+              snippet: sanitize(r.snippet),
+              url: r.resultUrl,
+            }),
+          }).catch(() => null))
+        ).catch(() => null)
       }
 
       const summaries = searchResults.map((r, i) => `${i + 1}. ${r.title}: ${r.snippet}`).join(' | ')

@@ -4,6 +4,10 @@ A multi-agent prison-break simulation where two LLM-powered agents — an **Inma
 
 Built on [InsForge](https://insforge.com) as a full-stack demo: Postgres database, realtime pub/sub, AI gateway, edge functions, object storage, and a React frontend — all from a single SDK.
 
+The agent's knowledge base is fed by a three-layer data pipeline — **Tinyfish** does live web search, **Nexla** standardizes and filters across input formats, **InsForge** stores embeddings and serves RAG retrieval to the agents.
+
+![Architecture](docs/architecture.png)
+
 ## How It Works
 
 The game is a turn-based loop. Each turn advances the world clock, then asks each agent to choose one action. Agents can only use skills they possess, and the world enforces physics (location, weather, inventory) server-side.
