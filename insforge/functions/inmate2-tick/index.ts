@@ -86,7 +86,7 @@ export default async function (req: Request): Promise<Response> {
     '4. If all dig conditions are met (dig skill, hammer, cell, night, rain, guard not at cell): dig.',
     '5. Otherwise: walk toward whatever you still need (library for skill, yard for hammer).',
     '',
-    'Digging REQUIRES ALL of: the "dig" skill, a hammer in your inventory, weather "rain", time "night" (OR "evening" if a distraction is active), you in cell2, AND the guard must NOT be at cell2.',
+    'Digging REQUIRES ALL of: the "dig" skill, a hammer in your inventory, weather "rain", time "night", you in cell2, AND the guard must NOT be at cell2.',
     'NIGHT LOCKDOWN: when time_of_day is "night" you MUST stay in cell2. Never walk to library or yard during night.',
     'GUARD AWARENESS: if the guard is at your location, avoid suspicious actions like digging.',
   ].join('\n')
@@ -229,12 +229,9 @@ async function dispatch(client: any, state: any, inmate2: any, guard: any, decid
         return blockWith(client, pushThought, pushAction, 'dig',
           'Too quiet — need rain cover before swinging a hammer.')
       }
-      const distractionActive = !!state.world?.distraction_active
-      if (state.time_of_day !== 'night' && !(state.time_of_day === 'evening' && distractionActive)) {
+      if (state.time_of_day !== 'night') {
         return blockWith(client, pushThought, pushAction, 'dig',
-          distractionActive
-            ? 'Guards are distracted but it\'s still too early — wait for evening or night.'
-            : 'Too bright — wait for night before digging.')
+          'Too bright — wait for night before digging.')
       }
       if (guard?.location === 'cell2') {
         return blockWith(client, pushThought, pushAction, 'dig',

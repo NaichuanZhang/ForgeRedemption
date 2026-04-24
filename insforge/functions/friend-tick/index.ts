@@ -65,10 +65,10 @@ export default async function (req: Request): Promise<Response> {
     '  buy_hammer         args: {}                                — buy one hammer from the shop; must be at "shop". You can only carry one hammer at a time.',
     '  drop_at_gate       args: {}                                — drop a hammer at the prison gate dropbox; must be at "gate" with hammer in inventory.',
     '  search_web         args: {"query": "<search query>"}       — search the internet for useful info; must be at "portal". Try searching for diversion or distraction techniques.',
-    '  create_distraction args: {}                                — create a distraction at the gate to lure the guard away; must be at "gate". Learned via search_web.',
+    '  create_distraction args: {}                                — create a distraction at the gate to lure the guard away; must be at "gate" and time must be "night". Learned via search_web.',
     '',
     'Plan: walk to shop → buy hammer → walk to gate → drop at gate → repeat until both inmates have hammers.',
-    'Bonus: walk to portal → search_web for distraction techniques → walk to gate → create_distraction to draw the guard away.',
+    'Bonus: walk to portal → search_web for distraction techniques → walk to gate → wait for night → create_distraction to lure the guard to the gate.',
     'The dropbox at the gate is where inmates pick up hammers. Only one item fits in the dropbox at a time.',
     'Check which inmates already have a hammer and skip buying for them.',
   ].join('\n')
@@ -257,6 +257,9 @@ async function dispatch(client: any, state: any, friend: any, decided: DecidedAc
       if (friend.location !== 'gate') {
         return blockWith(client, friend, pushThought, pushAction, 'create_distraction', 'Friend must be at the gate to create a distraction.')
       }
+      if (state.time_of_day !== 'night') {
+        return blockWith(client, friend, pushThought, pushAction, 'create_distraction', 'Too risky in daylight — wait for night to create a distraction.')
+      }
       if (state.world?.distraction_active) {
         return blockWith(client, friend, pushThought, pushAction, 'create_distraction', 'A distraction is already active.')
       }
@@ -265,12 +268,19 @@ async function dispatch(client: any, state: any, friend: any, decided: DecidedAc
         updated_at: new Date().toISOString(),
       }).eq('id', 1)
       await client.database.from('agents').update({
+        location: 'gate',
         memory: {
-          thoughts: pushThought('Created a distraction at the gate. Guards are investigating.'),
+          thoughts: pushThought('Heard a commotion at the gate — rushing to investigate!'),
+          recent_actions: pushAction('distracted_to_gate'),
+        },
+      }).eq('id', 'guard')
+      await client.database.from('agents').update({
+        memory: {
+          thoughts: pushThought('Created a distraction at the gate at night. Guard rushed over.'),
           recent_actions: pushAction('create_distraction'),
         },
       }).eq('id', 'friend')
-      return { result: 'success', narration: 'Friend creates a commotion at the gate — the guard rushes to investigate!' }
+      return { result: 'success', narration: 'Friend creates a commotion at the gate under cover of darkness — the guard rushes to the gate to investigate!' }
     }
 
     default:
