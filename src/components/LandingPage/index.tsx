@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import './GameLandingPage.css';
 import { DEFAULT_LOGO, DEFAULT_SPONSORS, DEFAULT_VIDEO } from './assets';
@@ -19,6 +20,15 @@ export function GameLandingPage({
   videoSrc = DEFAULT_VIDEO,
   sponsors = DEFAULT_SPONSORS,
 }: GameLandingPageProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  // Browsers only allow autoplay without a user gesture when muted; unmute after tap.
+  const [videoMuted, setVideoMuted] = useState(true);
+
+  const enableVideoSound = () => {
+    setVideoMuted(false);
+    void videoRef.current?.play();
+  };
+
   return (
     <div className="relative h-screen w-screen bg-[#050505] overflow-hidden text-white font-sans">
       {/* Background Layer */}
@@ -26,10 +36,11 @@ export function GameLandingPage({
         <div className="absolute inset-0 bg-[#050505]"></div>
         {videoSrc ? (
           <video
+            ref={videoRef}
             src={videoSrc}
             autoPlay
             loop
-            muted
+            muted={videoMuted}
             playsInline
             className="absolute inset-0 w-full h-full object-cover opacity-80 pointer-events-none"
           />
@@ -66,7 +77,19 @@ export function GameLandingPage({
       </motion.div>
 
       {/* Bottom Center: CTA */}
-      <div className="absolute bottom-[60px] md:bottom-[80px] left-1/2 -translate-x-1/2 z-20 text-center w-full px-4 flex flex-col items-center">
+      <div className="absolute bottom-[60px] md:bottom-[80px] left-1/2 -translate-x-1/2 z-20 text-center w-full px-4 flex flex-col items-center gap-3">
+        {videoSrc && videoMuted ? (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            onClick={enableVideoSound}
+            className="pointer-events-auto rounded-full border border-white/25 bg-black/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/85 backdrop-blur-sm hover:bg-white/10"
+          >
+            Enable sound
+          </motion.button>
+        ) : null}
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
