@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGameState } from '../hooks/useGameState'
+import { useVapi } from '../hooks/useVapi'
 import { insforge } from '../lib/insforge'
 import { countFromLog, traceAction, type Feature } from '../lib/techMap'
 import { StackSidebar } from '../components/tech/StackSidebar'
 import { TurnTimeline } from '../components/tech/TurnTimeline'
 import { EventStream, type StreamEvent } from '../components/tech/EventStream'
 import { CountersBar } from '../components/tech/CountersBar'
+import { NarratorControl } from '../components/NarratorControl'
 
 const STREAM_LIMIT = 80
 
 export function TechExplainerPage() {
   const { log, loading, error } = useGameState()
+  const [narratorEnabled, setNarratorEnabled] = useState(false)
+  const narrator = useVapi({ mode: 'tech-explainer', log, enabled: narratorEnabled })
 
   const [events, setEvents] = useState<StreamEvent[]>([])
   const [realtimeCount, setRealtimeCount] = useState(0)
@@ -98,12 +102,23 @@ export function TechExplainerPage() {
               Live breakdown of the InsForge features (and TinyFish search) exercised by each turn.
             </p>
           </div>
-          <Link
-            to="/"
-            className="ml-auto text-[10px] font-mono uppercase tracking-wider text-zinc-400 hover:text-emerald-300 border border-zinc-700/60 rounded-md px-3 py-1.5 bg-zinc-950/70 transition-colors"
-          >
-            ← Back to game
-          </Link>
+          <div className="ml-auto flex items-center gap-3">
+            <NarratorControl
+              callStatus={narrator.callStatus}
+              isSpeaking={narrator.isSpeaking}
+              isMuted={narrator.isMuted}
+              queueLength={narrator.queueLength}
+              onConnect={() => { setNarratorEnabled(true); narrator.connect() }}
+              onDisconnect={() => { setNarratorEnabled(false); narrator.disconnect() }}
+              onToggleMute={narrator.toggleMute}
+            />
+            <Link
+              to="/"
+              className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 hover:text-emerald-300 border border-zinc-700/60 rounded-md px-3 py-1.5 bg-zinc-950/70 transition-colors"
+            >
+              ← Back to game
+            </Link>
+          </div>
         </header>
 
         <CountersBar counters={counters} />
